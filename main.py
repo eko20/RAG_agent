@@ -10,31 +10,43 @@ import os
 
 # Set up API key
 api_key = ""
-os.environ["OPENAI_API_KEY"]
+os.environ["OPENAI_API_KEY"] = api_key
 
 # Select the first column of the DataFrame, drop any null values, 
 # and get a list of unique values
 def query_as_list(conn, query):
     df = pd.read_sql_query(query, conn)
-    return df.iloc[:, 0].dropna().unique().tolist()
+    unique_values = {}
+    for column in df.columns:
+        if df[column].dtype == 'object':  # Handle text columns
+            unique_values[column] = df[column].dropna().unique().tolist()
+        else:  # Handle numeric columns
+            unique_values[column] = df[column].dropna().unique().tolist()
+    return unique_values
 
 # Connect to your SQLite database
 conn = sqlite3.connect("log.db")
 
-# Get unique values for relevant columns
-geoip_countries = query_as_list(conn, "SELECT DISTINCT geoip_country FROM log")
-geoip_cities = query_as_list(conn, "SELECT DISTINCT geoip_city FROM log")
-device_types = query_as_list(conn, "SELECT DISTINCT device_type FROM log")
-user_agents = query_as_list(conn, "SELECT DISTINCT user_agent FROM log")
+query = "SELECT DISTINCT geoip_country, geoip_city, device_type, user_agent, id, status FROM log"
+unique_values = query_as_list(conn, query)
 
+geoip_countries = unique_values.get('geoip_country', [])
+device_types = unique_values.get('device_type', [])
+user_agents = unique_values.get('user_agent', [])
+ids = unique_values.get('id', [])  # This will be a list of integers
+status = unique_values.get('status', [])
 
 conn.close()
 
-texts = geoip_countries + geoip_cities + device_types + user_agents 
+asdasd = geoip_countries + status + device_types + user_agents +ids
+
+# Convert integers to strings for consistent list operations
+texts = (geoip_countries  + device_types + user_agents + [str(i) for i in ids] + [str(i) for i in status])
+
 
 # Create a FAISS vector store
 vector_db = FAISS.from_texts(texts, OpenAIEmbeddings())
-retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+retriever = vector_db.as_retriever(search_kwargs={"k": 5})
 
 description = """Use to look up values to filter on. Input is an approximate spelling of the proper noun, output is \
 valid proper nouns. Use the noun most similar to the search."""

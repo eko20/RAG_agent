@@ -38,7 +38,7 @@ status = unique_values.get('status', [])
 
 conn.close()
 
-asdasd = geoip_countries + status + device_types + user_agents +ids
+
 
 # Convert integers to strings for consistent list operations
 texts = (geoip_countries  + device_types + user_agents + [str(i) for i in ids] + [str(i) for i in status])

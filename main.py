@@ -27,7 +27,7 @@ def query_as_list(conn, query):
 # Connect to your SQLite database
 conn = sqlite3.connect("log.db")
 
-query = "SELECT DISTINCT geoip_country, geoip_city, device_type, user_agent, id, status FROM log"
+query = "SELECT DISTINCT geoip_country, device_type, user_agent, id, status FROM log"
 unique_values = query_as_list(conn, query)
 
 geoip_countries = unique_values.get('geoip_country', [])
@@ -48,11 +48,11 @@ texts = (geoip_countries  + device_types + user_agents + [str(i) for i in ids] +
 vector_db = FAISS.from_texts(texts, OpenAIEmbeddings())
 retriever = vector_db.as_retriever(search_kwargs={"k": 5})
 
-description = """Use to look up values to filter on. Input is an approximate spelling of the proper noun, output is \
-valid proper nouns. Use the noun most similar to the search."""
+description = """Retrieve and filter log entries based on various criteria. Input can include specific fields such as id , city, device type, user agent, or request. The tool will return the most relevant log entries based on the provided query."""
+
 retriever_tool = create_retriever_tool(
     retriever,
-    name="search_proper_nouns",
+    name="search_logs",
     description=description,
 )
 print(retriever)

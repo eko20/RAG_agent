@@ -1,10 +1,8 @@
 import sqlite3
-import sqlite3
 import pandas as pd
 import random
 from faker import Faker
 from datetime import datetime, timedelta
-
 
 fake = Faker()
 
@@ -12,7 +10,7 @@ fake = Faker()
 conn = sqlite3.connect("log.db")
 cursor = conn.cursor()
 
-# Create the table with the additional 'ip' column
+# Create the table without the 'geoip_city' column
 create_table_query = """
 CREATE TABLE IF NOT EXISTS log (
     id INTEGER PRIMARY KEY,
@@ -23,7 +21,6 @@ CREATE TABLE IF NOT EXISTS log (
     size INTEGER,
     user_agent TEXT,
     geoip_country TEXT,
-    geoip_city TEXT,
     device_type TEXT,
     ip TEXT
 );
@@ -34,7 +31,7 @@ cursor.execute(create_table_query)
 # Commit changes and close the connection
 conn.commit()
 
-# Function to create fake log data
+# Function to create fake log data (excluding geoip_city)
 def generate_detailed_logs(num_logs):
     logs = []
     current_time = datetime.utcnow()
@@ -51,7 +48,6 @@ def generate_detailed_logs(num_logs):
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
         ])
         geoip_country = fake.country()
-        geoip_city = fake.city()
         device_type = "Desktop" if "Windows" in user_agent or "Linux" in user_agent else "Mobile" if "Mobile" in user_agent or "Android" in user_agent else "Tablet" if "iPad" in user_agent or "Macintosh" in user_agent else "Unknown"
 
         log = {
@@ -63,7 +59,6 @@ def generate_detailed_logs(num_logs):
             "size": size,
             "user_agent": user_agent,
             "geoip_country": geoip_country,
-            "geoip_city": geoip_city,
             "device_type": device_type
         }
         logs.append(log)
@@ -72,14 +67,14 @@ def generate_detailed_logs(num_logs):
 
 data = generate_detailed_logs(1000)
 
-# Insert data into the table
+# Insert data into the table (excluding geoip_city)
 insert_query = """
-INSERT INTO log (timestamp, method, path, status, size, user_agent, geoip_country, geoip_city, device_type, ip)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO log (timestamp, method, path, status, size, user_agent, geoip_country, device_type, ip)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 # Prepare data for insertion
-records = [(log['timestamp'], log['method'], log['path'], log['status'], log['size'], log['user_agent'], log['geoip_country'], log['geoip_city'], log['device_type'], log['ip']) for log in data]
+records = [(log['timestamp'], log['method'], log['path'], log['status'], log['size'], log['user_agent'], log['geoip_country'], log['device_type'], log['ip']) for log in data]
 
 cursor.executemany(insert_query, records)
 
@@ -112,6 +107,3 @@ df = df[columns]
 
 # Write the DataFrame to a CSV file
 df.to_csv("sorted_log_data.csv", index=False)
-
-
-
